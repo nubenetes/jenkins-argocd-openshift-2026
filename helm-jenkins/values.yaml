@@ -1,0 +1,320 @@
+# ==============================================================================
+# Enterprise Jenkins Controller on Red Hat OpenShift 4.20+ Values Configuration
+# Fully compliant with OpenShift 'restricted-v2' Security Context Constraints (SCC)
+# JCasC (Jenkins Configuration as Code), Ephemeral Pod Templates & Seed Job DSL
+# ==============================================================================
+
+controller:
+  componentName: "jenkins-controller"
+  image:
+    repository: "jenkins/jenkins"
+    tag: "2.440.3-lts-jdk17"
+    pullPolicy: "IfNotPresent"
+
+  # ----------------------------------------------------------------------------
+  # OpenShift 4.20+ Security & Non-Root Execution (restricted-v2 SCC Compliance)
+  # ----------------------------------------------------------------------------
+  runAsUser: 10001
+  fsGroup: 10001
+  runAsGroup: 10001
+  hostNetworking: false
+
+  podSecurityContextOverride:
+    runAsUser: 10001
+    runAsGroup: 10001
+    fsGroup: 10001
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+
+  containerSecurityContext:
+    runAsUser: 10001
+    runAsGroup: 10001
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    seccompProfile:
+      type: RuntimeDefault
+    capabilities:
+      drop:
+        - ALL
+
+  # ----------------------------------------------------------------------------
+  # Resource Management & High Availability
+  # ----------------------------------------------------------------------------
+  resources:
+    requests:
+      cpu: "1000m"
+      memory: "2048Mi"
+    limits:
+      cpu: "2000m"
+      memory: "4096Mi"
+
+  javaOpts: "-Djenkins.install.runSetupWizard=false -XX:+UseG1GC -XX:+ExplicitGCInvokesConcurrent -Xms1536m -Xmx3072m -Dorg.apache.commons.jelly.tags.core.UseGroovyTag.allowUseGroovyTag=true"
+
+  # Zero executor slots on controller to enforce 100% ephemeral agent builds
+  numExecutors: 0
+
+  # ----------------------------------------------------------------------------
+  # OpenShift Route / Ingress Configuration
+  # ----------------------------------------------------------------------------
+  ingress:
+    enabled: false # Disabled in favor of native OpenShift Route below
+
+  route:
+    enabled: true
+    labels:
+      app.kubernetes.io/name: jenkins
+      app.kubernetes.io/part-of: nubenetes-ci-cd
+    annotations:
+      haproxy.router.openshift.io/timeout: "300s"
+    path: "/"
+    tls:
+      enabled: true
+      termination: edge
+      insecureEdgeTerminationPolicy: Redirect
+
+  # ----------------------------------------------------------------------------
+  # Service Account & RBAC
+  # ----------------------------------------------------------------------------
+  serviceAccount:
+    create: true
+    name: "jenkins-controller-sa"
+    annotations:
+      serviceaccounts.openshift.io/oauth-redirectreference.jenkins: '{"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"jenkins"}}'
+
+  serviceAccountAgent:
+    create: true
+    name: "jenkins-agent-sa"
+
+  # ----------------------------------------------------------------------------
+  # Persistence (Persistent Volume Claim)
+  # ----------------------------------------------------------------------------
+  persistence:
+    enabled: true
+    size: "30Gi"
+    accessMode: "ReadWriteOnce"
+    storageClass: "gp3-csi" # Standard OpenShift storageclass for AWS / generic CSI
+
+  # ----------------------------------------------------------------------------
+  # Required Enterprise Plugins
+  # ----------------------------------------------------------------------------
+  installPlugins:
+    - "configuration-as-code:1775.v810dc950b_514"
+    - "job-dsl:1.87"
+    - "kubernetes:4273.v29079979730c"
+    - "workflow-aggregator:596.v8c21c963d92d"
+    - "workflow-multibranch:773.vc4fe1378f1d5"
+    - "git:5.2.1"
+    - "git-client:4.6.0"
+    - "git-parameter:0.9.19"
+    - "credentials-binding:681.vf91662a_42e81"
+    - "pipeline-stage-view:2.34"
+    - "timestamper:1.26"
+    - "matrix-auth:3.2.2"
+    - "role-strategy:704.v260421258661"
+    - "openshift-client:1.1.0"
+    - "pipeline-graph-analysis:207.va_c26922a_f828"
+    - "ws-cleanup:0.45"
+
+  # ----------------------------------------------------------------------------
+  # Jenkins Configuration as Code (JCasC)
+  # ----------------------------------------------------------------------------
+  JCasC:
+    enabled: true
+    defaultConfig: true
+    configScripts:
+      welcome-message: |
+        jenkins:
+          systemMessage: "Enterprise CI/CD Immutable GitOps Platform on Red Hat OpenShift 4.20+ [Managed by JCasC - Nubenetes]"
+
+      security-rbac: |
+        jenkins:
+          authorizationStrategy:
+            projectMatrix:
+              permissions:
+                - "Overall/Administer:admin"
+                - "Overall/Administer:platform-admins"
+                - "Overall/Read:authenticated"
+                - "Job/Read:authenticated"
+                - "Job/Build:authenticated"
+                - "Job/Cancel:authenticated"
+                - "Job/Workspace:authenticated"
+                - "Job/Configure:devops-engineers"
+                - "Job/Create:devops-engineers"
+                - "Job/Delete:devops-engineers"
+                - "View/Read:authenticated"
+                - "View/Create:devops-engineers"
+                - "View/Configure:devops-engineers"
+                - "View/Delete:devops-engineers"
+                - "Agent/Build:authenticated"
+          securityRealm:
+            local:
+              allowsSignup: false
+              users:
+                - id: "admin"
+                  name: "Platform Administrator"
+                  password: "${ADMIN_PASSWORD:-ChangeMeToAStrongSecret2026!}"
+
+      global-libraries: |
+        unclassified:
+          globalLibraries:
+            libraries:
+              - name: "openshift-shared-library"
+                retriever:
+                  modernSCM:
+                    scm:
+                      git:
+                        id: "openshift-shared-library-git"
+                        remote: "https://github.com/nubenetes/jenkins-argocd-openshift-2026.git"
+                        traits:
+                          - "gitBranchDiscovery"
+                defaultVersion: "main"
+                implicit: false
+                allowVersionOverride: true
+                includeInChangesets: false
+
+      ephemeral-kubernetes-agents: |
+        jenkins:
+          clouds:
+            - kubernetes:
+                name: "openshift-cluster"
+                serverUrl: "https://kubernetes.default.svc"
+                namespace: "jenkins-infra"
+                jenkinsUrl: "http://jenkins.jenkins-infra.svc.cluster.local:8080"
+                jenkinsTunnel: "jenkins-agent.jenkins-infra.svc.cluster.local:50000"
+                containerCapStr: "50"
+                retentionTimeout: 10
+                connectTimeout: 100
+                readTimeout: 100
+                templates:
+                  - name: "openshift-ci-agent"
+                    label: "openshift-ci-agent"
+                    nodeUsageMode: "EXCLUSIVE"
+                    serviceAccount: "jenkins-agent-sa"
+                    workspaceVolume:
+                      emptyDirWorkspaceVolume:
+                        memory: false
+                    volumes:
+                      - emptyDirVolume:
+                          mountPath: "/home/jenkins/.local/share/containers"
+                          memory: false
+                      - emptyDirVolume:
+                          mountPath: "/tmp"
+                          memory: false
+                    securityContext:
+                      runAsUser: 10001
+                      runAsGroup: 10001
+                      fsGroup: 10001
+                      runAsNonRoot: true
+                      seccompProfile:
+                        type: RuntimeDefault
+                    containers:
+                      - name: "jnlp"
+                        image: "jenkins/inbound-agent:3206.vb_15d72085c02-1"
+                        privileged: false
+                        alwaysPullImage: false
+                        workingDir: "/home/jenkins/agent"
+                        resourceRequestCpu: "200m"
+                        resourceLimitCpu: "500m"
+                        resourceRequestMemory: "256Mi"
+                        resourceLimitMemory: "512Mi"
+                        securityContext:
+                          runAsUser: 10001
+                          runAsGroup: 10001
+                          runAsNonRoot: true
+                          allowPrivilegeEscalation: false
+                          capabilities:
+                            drop:
+                              - ALL
+                      - name: "buildah"
+                        image: "quay.io/buildah/stable:v1.35.0"
+                        privileged: false
+                        alwaysPullImage: false
+                        workingDir: "/home/jenkins/agent"
+                        command: "sleep"
+                        args: "99d"
+                        resourceRequestCpu: "500m"
+                        resourceLimitCpu: "2000m"
+                        resourceRequestMemory: "1024Mi"
+                        resourceLimitMemory: "4096Mi"
+                        envVars:
+                          - envVar:
+                              key: "STORAGE_DRIVER"
+                              value: "vfs"
+                          - envVar:
+                              key: "BUILDAH_ISOLATION"
+                              value: "chroot"
+                          - envVar:
+                              key: "HOME"
+                              value: "/home/jenkins"
+                        securityContext:
+                          runAsUser: 10001
+                          runAsGroup: 10001
+                          runAsNonRoot: true
+                          allowPrivilegeEscalation: false
+                          capabilities:
+                            drop:
+                              - ALL
+                      - name: "skopeo"
+                        image: "quay.io/containers/skopeo:v1.14.0"
+                        privileged: false
+                        alwaysPullImage: false
+                        workingDir: "/home/jenkins/agent"
+                        command: "sleep"
+                        args: "99d"
+                        resourceRequestCpu: "200m"
+                        resourceLimitCpu: "1000m"
+                        resourceRequestMemory: "256Mi"
+                        resourceLimitMemory: "1024Mi"
+                        envVars:
+                          - envVar:
+                              key: "HOME"
+                              value: "/home/jenkins"
+                        securityContext:
+                          runAsUser: 10001
+                          runAsGroup: 10001
+                          runAsNonRoot: true
+                          allowPrivilegeEscalation: false
+                          capabilities:
+                            drop:
+                              - ALL
+
+      seed-job-setup: |
+        jobs:
+          - script: >
+              pipelineJob('00-seed-job-bootstrap') {
+                displayName('00 - Master Job DSL Seed Job')
+                description('Automated seed job that reads job-dsl/seed_job.groovy and idempotently provisions folders and delivery pipelines.')
+                definition {
+                  cpsScm {
+                    scm {
+                      git {
+                        remote {
+                          url('https://github.com/nubenetes/jenkins-argocd-openshift-2026.git')
+                          credentials('github-scm-token')
+                        }
+                        branch('*/main')
+                      }
+                    }
+                    scriptPath('job-dsl/seed_job.groovy')
+                    lightweight(true)
+                  }
+                }
+                triggers {
+                  scm('H/15 * * * *')
+                }
+              }
+
+agent:
+  enabled: true
+  image:
+    repository: "jenkins/inbound-agent"
+    tag: "3206.vb_15d72085c02-1"
+  podSecurityContextOverride:
+    runAsUser: 10001
+    runAsGroup: 10001
+    fsGroup: 10001
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault

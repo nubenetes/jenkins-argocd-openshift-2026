@@ -1,0 +1,22 @@
+# Operating System files
+.DS_Store
+Thumbs.db
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary and log files
+*.log
+/tmp/
+.terraform/
+*.tfstate*
+
+# Jenkins & Node artifacts
+.jenkins/
+node_modules/
+dist/
+build/
+target/

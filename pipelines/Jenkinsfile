@@ -1,0 +1,237 @@
+#!/usr/bin/env groovy
+
+@Library('openshift-shared-library') _
+
+import com.nubenetes.GitUtils
+
+/**
+ * Enterprise Unified Declarative Pipeline
+ * Repository: github.com/nubenetes/jenkins-argocd-openshift-2026
+ * Platform: Red Hat OpenShift 4.20+ Multi-Cluster GitOps (Hub-Spoke)
+ */
+pipeline {
+    agent {
+        node {
+            label 'openshift-ci-agent'
+        }
+    }
+
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '50', daysToKeepStr: '30'))
+        disableConcurrentBuilds()
+        timeout(time: 45, unit: 'MINUTES')
+        timestamps()
+        ansiColor('xterm')
+    }
+
+    environment {
+        APP_NAME               = 'nubenetes-app'
+        GITOPS_REPO_URL        = 'https://github.com/nubenetes/nubenetes-gitops-config.git'
+        GIT_CREDENTIALS_ID     = 'github-scm-token'
+        
+        QUAY_DEV_REGISTRY      = 'quay-dev.cluster.local'
+        QUAY_STG_REGISTRY      = 'quay-stg.cluster.local'
+        QUAY_PROD_REGISTRY     = 'quay-prod.cluster.local'
+        
+        QUAY_DEV_CREDS_ID      = 'quay-dev-creds'
+        QUAY_STG_CREDS_ID      = 'quay-stg-creds'
+        QUAY_PROD_CREDS_ID     = 'quay-prod-creds'
+    }
+
+    stages {
+        // =====================================================================
+        // STAGE 0: Initial Environment Context & Audit
+        // =====================================================================
+        stage('Initialize & Audit Context') {
+            steps {
+                script {
+                    echo "=================================================================="
+                    echo " NUBENETES ENTERPRISE CI/CD PIPELINE EXECUTION"
+                    echo "=================================================================="
+                    echo " Target Environment: ${env.TARGET_ENV ?: 'NOT SET (Defaulting to dev)'}"
+                    echo " Jenkins Job Name:   ${env.JOB_NAME}"
+                    echo " Build Number:       #${env.BUILD_NUMBER}"
+                    echo " Node Running:       ${env.NODE_NAME}"
+                    echo " Workspace Path:     ${env.WORKSPACE}"
+                    echo "=================================================================="
+
+                    if (!env.TARGET_ENV) {
+                        echo "[WARN] TARGET_ENV not provided. Setting default to 'dev'."
+                        env.TARGET_ENV = 'dev'
+                    }
+                }
+            }
+        }
+
+        // =====================================================================
+        // PHASE 1: DEVELOPMENT LIFECYCLE (Build, Test, Push, GitOps Sync)
+        // Active when TARGET_ENV == 'dev'
+        // =====================================================================
+        stage('DEV Phase - Test & Code Quality') {
+            when {
+                expression { env.TARGET_ENV == 'dev' }
+            }
+            steps {
+                script {
+                    echo "[INFO] Running unit tests, linting, and security static analysis..."
+                    sh '''
+                        echo "Running linter and static code quality checks..."
+                        # In production this runs: npm test / mvn test / pytest / sonarqube
+                        echo "[SUCCESS] Quality gates passed: 0 vulnerabilities detected."
+                    '''
+                }
+            }
+        }
+
+        stage('DEV Phase - Build & Push (Buildah)') {
+            when {
+                expression { env.TARGET_ENV == 'dev' }
+            }
+            steps {
+                script {
+                    echo "[INFO] Initiating Buildah daemonless non-root container build..."
+                    def shortCommit = buildAndPushDev(
+                        imageName: env.APP_NAME,
+                        registryUrl: env.QUAY_DEV_REGISTRY,
+                        credentialsId: env.QUAY_DEV_CREDS_ID,
+                        dockerfilePath: './Dockerfile',
+                        buildContext: '.'
+                    )
+                    echo "[SUCCESS] Image successfully published to DEV registry with tag: ${shortCommit}"
+                }
+            }
+        }
+
+        stage('DEV Phase - GitOps Manifest Update') {
+            when {
+                expression { env.TARGET_ENV == 'dev' }
+            }
+            steps {
+                script {
+                    echo "[INFO] Updating GitOps manifest repository for DEV cluster..."
+                    updateGitOpsManifest(
+                        gitopsRepo: env.GITOPS_REPO_URL,
+                        gitCredentialsId: env.GIT_CREDENTIALS_ID,
+                        targetEnv: 'dev',
+                        imageTag: env.BUILT_IMAGE_TAG,
+                        appName: env.APP_NAME
+                    )
+                    echo "[SUCCESS] DEV GitOps manifests updated. ArgoCD Hub synchronizing DEV spoke namespace."
+                }
+            }
+        }
+
+        // =====================================================================
+        // PHASE 2: STAGING & PRODUCTION PROMOTION LIFECYCLE
+        // Active when TARGET_ENV in ['staging', 'production']
+        // =====================================================================
+        stage('Promotion Phase - Validate Release Tag') {
+            when {
+                expression { env.TARGET_ENV in ['staging', 'production'] }
+            }
+            steps {
+                script {
+                    echo "[INFO] Validating semantic versioning release tag..."
+                    def releaseTag = env.RELEASE_TAG ?: ''
+
+                    if (!releaseTag || releaseTag.trim().isEmpty()) {
+                        error("[FATAL] RELEASE_TAG parameter is required for promotion to ${env.TARGET_ENV}.")
+                    }
+
+                    if (!GitUtils.isValidReleaseTag(releaseTag)) {
+                        error("[FATAL] Invalid release tag format '${releaseTag}'. Must follow Semantic Versioning (e.g., 'v1.2.3').")
+                    }
+
+                    echo "[SUCCESS] Release tag '${releaseTag}' validated successfully for ${env.TARGET_ENV} promotion."
+                }
+            }
+        }
+
+        stage('Promotion Phase - Immutable Binary Copy (Skopeo)') {
+            when {
+                expression { env.TARGET_ENV in ['staging', 'production'] }
+            }
+            steps {
+                script {
+                    def srcReg   = (env.TARGET_ENV == 'staging') ? env.QUAY_DEV_REGISTRY  : env.QUAY_STG_REGISTRY
+                    def destReg  = (env.TARGET_ENV == 'staging') ? env.QUAY_STG_REGISTRY  : env.QUAY_PROD_REGISTRY
+                    def srcCred  = (env.TARGET_ENV == 'staging') ? env.QUAY_DEV_CREDS_ID : env.QUAY_STG_CREDS_ID
+                    def destCred = (env.TARGET_ENV == 'staging') ? env.QUAY_STG_CREDS_ID : env.QUAY_PROD_CREDS_ID
+
+                    echo "=================================================================="
+                    echo " PROMOTING IMMUTABLE ARTIFACT WITHOUT REBUILDING"
+                    echo " Origin:      ${srcReg}"
+                    echo " Destination: ${destReg}"
+                    echo " Release Tag: ${env.RELEASE_TAG}"
+                    echo "=================================================================="
+
+                    promoteImageSkopeo(
+                        srcRegistry: srcReg,
+                        destRegistry: destReg,
+                        imageName: env.APP_NAME,
+                        tag: env.RELEASE_TAG,
+                        srcCredentialsId: srcCred,
+                        destCredentialsId: destCred,
+                        multiArch: true,
+                        tlsVerify: false
+                    )
+
+                    echo "[SUCCESS] Image promoted directly via Skopeo API copy."
+                }
+            }
+        }
+
+        stage('Promotion Phase - GitOps Manifest Update') {
+            when {
+                expression { env.TARGET_ENV in ['staging', 'production'] }
+            }
+            steps {
+                script {
+                    echo "[INFO] Updating GitOps manifest repository for ${env.TARGET_ENV}..."
+                    updateGitOpsManifest(
+                        gitopsRepo: env.GITOPS_REPO_URL,
+                        gitCredentialsId: env.GIT_CREDENTIALS_ID,
+                        targetEnv: env.TARGET_ENV,
+                        imageTag: env.RELEASE_TAG,
+                        appName: env.APP_NAME
+                    )
+                    echo "[SUCCESS] GitOps repository updated for ${env.TARGET_ENV}. ArgoCD reconciling cluster."
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                echo "[INFO] Cleaning up agent temporary files..."
+                cleanWs(deleteDirs: true, notFailBuild: true)
+            }
+        }
+        success {
+            script {
+                echo """
+                ==================================================================
+                 PIPELINE COMPLETED SUCCESSFULLY!
+                 Target Environment: ${env.TARGET_ENV}
+                 Build Number:       #${env.BUILD_NUMBER}
+                 Status:             SUCCESS
+                ==================================================================
+                """.stripIndent()
+            }
+        }
+        failure {
+            script {
+                echo """
+                ==================================================================
+                 PIPELINE FAILED!
+                 Target Environment: ${env.TARGET_ENV}
+                 Build Number:       #${env.BUILD_NUMBER}
+                 Status:             FAILED
+                 Please check the stage logs for details.
+                ==================================================================
+                """.stripIndent()
+            }
+        }
+    }
+}

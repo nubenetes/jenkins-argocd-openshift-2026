@@ -1,0 +1,22 @@
+apiVersion: v2
+name: jenkins-openshift-gitops
+description: Enterprise Helm Umbrella Chart for Immutable CI/CD Jenkins Controller on Red Hat OpenShift 4.20+
+type: application
+version: 1.0.0
+appVersion: "2.440.3"
+keywords:
+  - jenkins
+  - openshift
+  - gitops
+  - jcasc
+  - buildah
+  - skopeo
+  - argocd
+maintainers:
+  - name: Nubenetes Platform Engineering Team
+    email: platform-engineering@nubenetes.com
+    url: https://github.com/nubenetes
+dependencies:
+  - name: jenkins
+    version: 5.8.14
+    repository: https://charts.jenkins.io
