@@ -68,64 +68,63 @@ While OpenShift native `BuildConfig` (Source-to-Image / Docker builds) served le
 The following diagram illustrates the physical separation between the ALM Control Plane (`OCP DEV`) and the isolated Spoke clusters (`OCP STG` and `OCP PRO`), along with their isolated Quay Container Registries:
 
 ```mermaid
-graph TD
-    subgraph OCP_DEV["OpenShift Cluster DEV (Hub - ALM Control Plane)"]
-        style OCP_DEV fill:#1e293b,stroke:#3b82f6,stroke-width:2px,color:#fff
-        
+flowchart TD
+    %% Styling Classes with High Contrast & Dual-Theme Compatibility
+    classDef hubStyle fill:#f0f9ff,stroke:#0284c7,stroke-width:2px,color:#0f172a;
+    classDef stgStyle fill:#fffbeb,stroke:#d97706,stroke-width:2px,color:#0f172a;
+    classDef prodStyle fill:#fef2f2,stroke:#dc2626,stroke-width:2px,color:#0f172a;
+    classDef gitStyle fill:#faf5ff,stroke:#9333ea,stroke-width:2px,color:#0f172a;
+    classDef regStyle fill:#f8fafc,stroke:#475569,stroke-width:2px,stroke-dasharray: 4 4,color:#0f172a;
+
+    subgraph GITHUB["📦 GitHub SCM & Configuration Ecosystem"]
+        REPO_APP["App Source Code<br/><b>github.com/nubenetes/...</b>"]:::gitStyle
+        REPO_GITOPS["Declarative GitOps Repo<br/><b>nubenetes-gitops-config</b>"]:::gitStyle
+    end
+
+    subgraph OCP_DEV["☸️ OpenShift Cluster DEV (Hub / ALM Control Plane)"]
         subgraph NS_JENKINS["Namespace: jenkins-infra"]
-            JC["Jenkins Controller<br/>(JCasC + Job DSL)"]
-            JA["Ephemeral CI Agent<br/>(Buildah + Skopeo)"]
+            JC["Jenkins Controller<br/><b>JCasC + Job DSL</b>"]:::hubStyle
+            JA["Ephemeral Agent Pod<br/><b>Buildah + Skopeo</b>"]:::hubStyle
         end
-        
+
         subgraph NS_ARGOCD["Namespace: openshift-gitops"]
-            ARGO["ArgoCD Control Plane<br/>(ApplicationSet / Hub)"]
+            ARGO["ArgoCD Control Plane<br/><b>ApplicationSet / Hub</b>"]:::hubStyle
         end
-        
+
         subgraph NS_APP_DEV["Namespace: nubenetes-dev"]
-            APP_DEV["App Workloads (DEV)"]
+            APP_DEV["App Workloads (DEV)"]:::hubStyle
         end
 
-        QUAY_DEV[("Quay DEV Registry<br/>quay-dev.cluster.local")]
+        QUAY_DEV[("Quay DEV Registry<br/><b>quay-dev.cluster.local</b>")]:::regStyle
     end
 
-    subgraph OCP_STG["OpenShift Cluster STAGING (Spoke)"]
-        style OCP_STG fill:#1e293b,stroke:#f59e0b,stroke-width:2px,color:#fff
-        
+    subgraph OCP_STG["☸️ OpenShift Cluster STAGING (Spoke)"]
         subgraph NS_APP_STG["Namespace: nubenetes-staging"]
-            APP_STG["App Workloads (STAGING)"]
+            APP_STG["App Workloads (STAGING)"]:::stgStyle
         end
-        
-        QUAY_STG[("Quay STG Registry<br/>quay-stg.cluster.local")]
+        QUAY_STG[("Quay STG Registry<br/><b>quay-stg.cluster.local</b>")]:::regStyle
     end
 
-    subgraph OCP_PROD["OpenShift Cluster PRODUCTION (Spoke)"]
-        style OCP_PROD fill:#1e293b,stroke:#ef4444,stroke-width:2px,color:#fff
-        
+    subgraph OCP_PROD["☸️ OpenShift Cluster PRODUCTION (Spoke)"]
         subgraph NS_APP_PROD["Namespace: nubenetes-production"]
-            APP_PROD["App Workloads (PROD)"]
+            APP_PROD["App Workloads (PROD)"]:::prodStyle
         end
-        
-        QUAY_PROD[("Quay PROD Registry<br/>quay-prod.cluster.local")]
+        QUAY_PROD[("Quay PROD Registry<br/><b>quay-prod.cluster.local</b>")]:::regStyle
     end
 
-    subgraph GITHUB["GitHub SCM Ecosystem"]
-        REPO_APP["App Source Code Repo<br/>github.com/nubenetes/..."]
-        REPO_GITOPS["GitOps Manifests Repo<br/>nubenetes-gitops-config"]
-    end
-
-    %% Interactions
-    REPO_APP -->|"Webhook Trigger"| JC
-    JC -.->|"Spawns Ephemeral Pod"| JA
-    JA -->|"1. Buildah Build & Push"| QUAY_DEV
-    JA -->|"2. Update Tag (DEV)"| REPO_GITOPS
+    %% Flow connections
+    REPO_APP -->|"1. Push Webhook"| JC
+    JC -.->|"2. Provision Pod"| JA
+    JA -->|"3. Buildah Build & Push (SHA)"| QUAY_DEV
+    JA -->|"4. Update Dev Manifest"| REPO_GITOPS
     
-    JA -.->|"Skopeo Copy (STG Release)"| QUAY_STG
-    JA -.->|"Skopeo Copy (PROD Release)"| QUAY_PROD
+    JA ===|"5a. Skopeo API Copy (Release Tag)"| QUAY_STG
+    JA ===|"5b. Skopeo API Copy (Release Tag)"| QUAY_PROD
 
-    ARGO -->|"Watches Manifests"| REPO_GITOPS
-    ARGO -->|"Syncs Declarative State"| NS_APP_DEV
-    ARGO -->|"Syncs Declarative State (Kube API)"| NS_APP_STG
-    ARGO -->|"Syncs Declarative State (Kube API)"| NS_APP_PROD
+    ARGO -->|"6. Poll Manifests"| REPO_GITOPS
+    ARGO -->|"Reconcile"| NS_APP_DEV
+    ARGO -->|"Reconcile (Kube API)"| NS_APP_STG
+    ARGO -->|"Reconcile (Kube API)"| NS_APP_PROD
 
     QUAY_DEV -.->|"Image Pull"| APP_DEV
     QUAY_STG -.->|"Image Pull"| APP_STG
@@ -141,39 +140,39 @@ The complete end-to-end lifecycle of a code change—from developer commit to pr
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Dev as Developer / Release Mgr
-    participant GH as GitHub (App & GitOps Repos)
-    participant J_Ctrl as Jenkins Controller
-    participant J_Agent as Ephemeral Agent (Buildah/Skopeo)
-    participant Q_Dev as Quay Registry DEV
-    participant Q_Stg as Quay Registry STG
-    participant Q_Prod as Quay Registry PROD
-    participant Argo as ArgoCD (Hub)
-    participant OCP as Target OpenShift Namespace
+    actor Dev as 👨‍💻 Developer / Release Mgr
+    participant GH as 📦 GitHub (App & GitOps Repos)
+    participant J_Ctrl as ⚙️ Jenkins Controller
+    participant J_Agent as 🚀 Ephemeral Agent (Buildah/Skopeo)
+    participant Q_Dev as 🗄️ Quay DEV Registry
+    participant Q_Stg as 🗄️ Quay STG Registry
+    participant Q_Prod as 🗄️ Quay PROD Registry
+    participant Argo as 🐙 ArgoCD (Hub Control Plane)
+    participant OCP as ☸️ Target OpenShift Namespace
 
     %% DEV CYCLE
-    rect rgb(30, 41, 59)
-        note over Dev, OCP: PHASE 1: Continuous Integration (DEV Environment)
+    rect rgba(2, 132, 199, 0.08)
+        note over Dev, OCP: 🔵 PHASE 1: Continuous Integration (DEV Environment)
         Dev->>GH: git push (Feature / Main Branch)
         GH-->>J_Ctrl: Webhook Trigger (01-build-and-deploy-dev)
-        J_Ctrl->>J_Agent: Provision Agent Pod (restricted-v2 SCC)
+        J_Ctrl->>J_Agent: Provision Agent Pod (restricted-v2 Non-Root UID 10001)
         activate J_Agent
         J_Agent->>J_Agent: Execute Tests & Linting
         J_Agent->>Q_Dev: Buildah Build & Push (Tag: Short Git SHA)
         J_Agent->>GH: Update environments/dev/values.yaml (Git Commit & Push)
         deactivate J_Agent
         Argo->>GH: Detect GitOps commit in dev manifests
-        Argo->>OCP: Reconcile Deployment in nubenetes-dev
+        Argo->>OCP: Reconcile Deployment in namespace nubenetes-dev
     end
 
     %% STAGING / PROD CYCLE
-    rect rgb(15, 23, 42)
-        note over Dev, OCP: PHASE 2: Immutable Release Promotion (STAGING / PROD)
-        Dev->>J_Ctrl: Trigger 02-promote-to-staging (Select Git Tag e.g. v1.2.0)
-        J_Ctrl->>J_Agent: Provision Ephemeral Agent
+    rect rgba(217, 119, 6, 0.08)
+        note over Dev, OCP: 🟡 PHASE 2: Immutable Release Promotion (STAGING / PROD)
+        Dev->>J_Ctrl: Trigger 02-promote-to-staging (Select Tag e.g. v1.2.0)
+        J_Ctrl->>J_Agent: Provision Ephemeral Agent Pod
         activate J_Agent
         J_Agent->>J_Agent: Validate SemVer Tag (GitUtils.isValidReleaseTag)
-        J_Agent->>Q_Dev: Skopeo API Inspect Source Image
+        J_Agent->>Q_Dev: Skopeo API Inspect Source Image Manifest
         J_Agent->>Q_Stg: Skopeo API Direct Copy (Zero local disk pull)
         J_Agent->>GH: Update environments/staging/values.yaml (Tag: v1.2.0)
         deactivate J_Agent
