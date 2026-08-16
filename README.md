@@ -16,6 +16,31 @@
 
 ---
 
+## 📑 Table of Contents
+
+- [1. Executive Summary & Design Philosophy](#1-executive-summary--design-philosophy)
+  - [1.1 Mitigation of the Unified Environment Dropdown Antipattern](#11-mitigation-of-the-unified-environment-dropdown-antipattern)
+  - [1.2 ArgoCD Hub-Spoke Multi-Cluster Architecture](#12-argocd-hub-spoke-multi-cluster-architecture)
+  - [1.3 Why OpenShift `BuildConfig` and `ImageStream` Resources are Completely Omitted](#13-why-openshift-buildconfig-and-imagestream-resources-are-completely-omitted)
+  - [1.4 Architectural Decision: Modular Shared Library Steps vs. Encapsulated Monolithic Pipeline](#14-architectural-decision-modular-shared-library-steps-vs-encapsulated-monolithic-pipeline)
+  - [1.5 Architectural Training Deep-Dive: Tagging Strategy in DEV (Mutable vs. Immutable Tags)](#15-architectural-training-deep-dive-tagging-strategy-in-dev-mutable-develop-tags-vs-immutable-git-short-sha--imagestream-pitfalls)
+- [2. System Architecture & Mermaid Diagrams](#2-system-architecture--mermaid-diagrams)
+  - [2.1 Multi-Cluster Hub-Spoke Topology](#21-multi-cluster-hub-spoke-topology)
+  - [2.2 Unified Pipeline Lifecycle Flow](#22-unified-pipeline-lifecycle-flow)
+- [3. Repository Structure](#3-repository-structure)
+- [4. Technical Specifications & Security Hardening](#4-technical-specifications--security-hardening)
+  - [4.1 OpenShift 4.20+ `restricted-v2` SCC Compliance](#41-openshift-420-restricted-v2-scc-compliance)
+  - [4.2 Daemonless Ephemeral Agents (Buildah & Skopeo)](#42-daemonless-ephemeral-agents)
+- [5. Step-by-Step CLI Deployment Guide](#5-step-by-step-cli-deployment-guide)
+  - [5.1 Prerequisites](#51-prerequisites)
+  - [5.2 Automated Bootstrap](#52-automated-bootstrap)
+  - [5.3 Manual Step-by-Step Deployment (For Auditing & Customization)](#53-manual-step-by-step-deployment-for-auditing--customization)
+- [6. Decommissioning & Cleanup Guide](#6-decommissioning--cleanup-guide)
+- [7. Compliance, Governance & Audit Trails](#7-compliance-governance--audit-trails)
+- [8. License](#8-license)
+
+---
+
 ## 1. Executive Summary & Design Philosophy
 
 This repository (`github.com/nubenetes/jenkins-argocd-openshift-2026`) delivers a turnkey, immutable, declarative CI/CD and GitOps platform engineered specifically for **Red Hat OpenShift 4.20+**. It incorporates the official **Jenkins Helm Chart**, **Jenkins Configuration as Code (JCasC)**, **Job DSL (Seed Jobs)**, an enterprise **Jenkins Shared Library**, and **ArgoCD** configured in a **Hub-Spoke Multi-Cluster Topology**.
