@@ -123,6 +123,75 @@ This repository deliberately adopts the **Modular Shared Library Architecture**.
 
 ---
 
+### 1.5 Architectural Training Deep-Dive: Tagging Strategy in DEV (Mutable 'develop' Tags vs. Immutable Git Short SHA & ImageStream Pitfalls)
+
+A recurring architectural question from engineering teams adopting GitOps is:
+> *"Wouldn't it be more convenient in DEV to tag images with a mutable floating tag like `develop` or `dev-latest`, avoiding GitOps manifest updates on every build? Wouldn't an OpenShift `ImageStream` be ideal for automatically redeploying this mutable tag?"*
+
+While using a floating `develop` tag appears to simplify development, in enterprise Kubernetes and GitOps environments it creates **severe operational, observability, and concurrency failures**.
+
+---
+
+#### 1. The Pitfalls of Mutable `develop` Tags in Kubernetes / OpenShift
+
+1. **Loss of Audit Traceability & Rollback Capability ("Which commit broke DEV?"):**
+   - When pods run `image: quay-dev/app:develop`, running `oc get pods` reveals no information about the underlying Git commit or pull request.
+   - **Rollback Impossibility:** If a faulty build crashes DEV, you cannot revert to the previous working state via Git. The previous `develop` image layer has already been permanently overwritten in the registry. Recovering requires re-triggering a full rebuild from an older commit.
+   - **With Git Short SHA (e.g., `quay-dev/app:09bc166`):** The exact commit is transparent in `oc get pods`, ArgoCD UI, and logs. Reverting a broken DEV deployment is instantaneous via a single `git revert` in the GitOps repository.
+
+2. **Kubernetes Deployment Controller Caching & Split-Brain Pods:**
+   - When a new `develop` image is pushed to the registry without updating the Kubernetes manifest, the Kubernetes `Deployment` controller **does not trigger a rollout** because the manifest specification remains unchanged (`image: app:develop`).
+   - Workarounds like `imagePullPolicy: Always` fail across multi-node clusters: nodes with cached layers may not pull the updated image immediately, causing your service to run a **split-brain state where different pods execute different code versions simultaneously under the same Service**.
+   - Forcing pod restarts imperatively (e.g., `oc rollout restart`) breaks declarative GitOps automation.
+
+3. **Build Concurrency & Race Conditions in Multi-Developer Teams:**
+   - If Developer A and Developer B push changes within seconds of each other, Build 1 and Build 2 overwrite the same `develop` tag in Quay.
+   - Automated integration tests triggered for Developer A's PR will execute against Developer B's newly pushed container, causing erratic, undebuggable test results.
+
+---
+
+#### 2. Why OpenShift `ImageStream` Cannot Fix This in GitOps
+
+If you attempt to use an OpenShift `ImageStream` with an `ImageChangeTrigger` to automate pod restarts upon `develop` tag updates:
+- The `ImageStream` controller detects the new image digest and **mutates the live `Deployment` in the cluster**, replacing `image: app:develop` with `image: app@sha256:7f8a9b...`.
+- **ArgoCD Conflict (State Drift & Sync Loops):**
+  - **Git Manifest:** `image: app:develop`
+  - **Live Cluster:** `image: app@sha256:7f8a9b...`
+  - ArgoCD detects a state discrepancy and flags the application as **`OutOfSync`**.
+  - If ArgoCD automated self-healing is active (`selfHeal: true`), ArgoCD continuously reverts the cluster deployment, fighting the ImageStream controller in an infinite **reconciliation loop (Sync Loop)**.
+  - Ignoring the image field via ArgoCD `ignoreDifferences` completely undermines Git as the Single Source of Truth (SSOT).
+
+---
+
+#### 3. The Enterprise Solution: The Hybrid Tagging Pattern
+
+To resolve this dilemma, this framework implements the **Enterprise Hybrid Tagging Model**:
+
+```
+                              ┌──────────────────────────────────────────────┐
+                              │          HYBRID TAGGING IN DEV               │
+                              ├──────────────────────────────────────────────┤
+                              │ 1. Immutable Tag:   quay-dev/app:09bc166     │ ──► [Used by GitOps & ArgoCD]
+                              │ 2. Floating Alias:  quay-dev/app:dev-latest  │ ──► [Used for Local Developer Pulls]
+                              └──────────────────────────────────────────────┘
+```
+
+1. **Immutable Git Short SHA for Deployments:** Every build tags the container with the exact Git short commit hash (e.g., `09bc166`). The pipeline updates the GitOps `environments/dev/values.yaml` file, ensuring clean ArgoCD reconciliation, zero sync loops, and instantaneous rollbacks.
+2. **Floating Alias for Developer Convenience:** The pipeline simultaneously publishes the floating tag `dev-latest` to Quay. Developers can run `podman pull quay-dev.cluster.local/app:dev-latest` for local debugging without interfering with cluster deployments.
+
+---
+
+#### 4. Implementation Compliance Checklist in this Repository
+
+| Architecture Recommendation | Status in Codebase | Implementation Verification File |
+| :--- | :---: | :--- |
+| **Buildah Generates Immutable Git Short SHA** | 🟢 **COMPLIANT** | [`shared-library/vars/buildAndPushDev.groovy`](shared-library/vars/buildAndPushDev.groovy) (`fullImageTag = "${registryUrl}/${imageName}:${shortSha}"`) |
+| **Buildah Publishes Floating Alias (`dev-latest`)** | 🟢 **COMPLIANT** | [`shared-library/vars/buildAndPushDev.groovy`](shared-library/vars/buildAndPushDev.groovy) (`latestImageTag = "${registryUrl}/${imageName}:dev-latest"`) |
+| **GitOps Manifest Updates with Short SHA** | 🟢 **COMPLIANT** | [`shared-library/vars/updateGitOpsManifest.groovy`](shared-library/vars/updateGitOpsManifest.groovy) & [`pipelines/Jenkinsfile`](pipelines/Jenkinsfile) |
+| **Zero ImageStream Mutation Conflicts in ArgoCD** | 🟢 **COMPLIANT** | Complete omission of `ImageStream` manifests; pure Helm-driven declarative GitOps. |
+
+---
+
 ## 2. System Architecture & Mermaid Diagrams
 
 ### 2.1 Multi-Cluster Hub-Spoke Topology
