@@ -57,7 +57,7 @@
   - [5.3 Manual Step-by-Step Deployment (For Auditing & Customization)](#53-manual-step-by-step-deployment-for-auditing--customization)
 - [6. Decommissioning & Cleanup Guide](#6-decommissioning--cleanup-guide)
 - [7. Compliance, Governance & Audit Trails](#7-compliance-governance--audit-trails)
-- [8. Contributors & Architectural Attribution](#8-contributors--architectural-attribution)
+- [8. Authors & Contributors](#8-authors--contributors)
 - [9. License](#9-license)
 
 ---
@@ -569,50 +569,16 @@ oc delete project jenkins-infra nubenetes-dev nubenetes-staging nubenetes-produc
 
 ---
 
-## 8. 👥 Contributors & Architectural Attribution
+## 8. Authors & Contributors
 
-This project is co-authored and architected through human-AI collaborative platform engineering:
+| Contributor | Role | Profile / Identity |
+| :--- | :--- | :--- |
+| **Inaki** | Architecture Design & Platform Engineering | [@inafev](https://github.com/inafev) |
+| **Gemini 3.7 Flash High** | Agentic AI Coding & Manifest Generation | [Google DeepMind / Antigravity](https://deepmind.google/technologies/gemini/) |
 
-<table>
-  <tbody>
-    <tr>
-      <td align="center" valign="top" width="25%">
-        <a href="https://github.com/inafev">
-          <img src="https://github.com/inafev.png" width="80px;" alt="Iñaki Fuentes"/><br />
-          <sub><b>Iñaki Fuentes</b></sub>
-        </a><br />
-        <a href="https://github.com/nubenetes" title="Lead Platform Architect">🏛️ Lead Architect</a><br/>
-        <sub>Platform Engineering</sub>
-      </td>
-      <td align="center" valign="top" width="25%">
-        <a href="https://deepmind.google/technologies/gemini/">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/8/8a/Google_Gemini_logo.svg" width="80px;" alt="Google Gemini"/><br />
-          <sub><b>Gemini 3.7 Flash High</b></sub>
-        </a><br />
-        <a href="https://deepmind.google/technologies/gemini/" title="Principal AI Systems Architect">🤖 AI Systems Architect</a><br/>
-        <sub>Google DeepMind</sub>
-      </td>
-      <td align="center" valign="top" width="25%">
-        <a href="https://deepmind.google/">
-          <img src="https://avatars.githubusercontent.com/u/1342004?s=200&v=4" width="80px;" alt="Google Antigravity"/><br />
-          <sub><b>Google Antigravity</b></sub>
-        </a><br />
-        <a href="https://deepmind.google/" title="Agentic Platform Engineering Automation">⚡ Platform Automation</a><br/>
-        <sub>Google DeepMind</sub>
-      </td>
-      <td align="center" valign="top" width="25%">
-        <a href="https://gemini.google.com/">
-          <img src="https://www.gstatic.com/lamda/images/gemini_sparkle_v002_d4735304ff6292a690345.svg" width="80px;" alt="Gemini Deep Research"/><br />
-          <sub><b>Gemini Deep Research</b></sub>
-        </a><br />
-        <a href="https://gemini.google.com/" title="Architectural Research & Analysis">🔬 Deep Research</a><br/>
-        <sub>Google Research</sub>
-      </td>
-    </tr>
-  </tbody>
-</table>
-
-For detailed breakdown of responsibilities and contributions, see [CONTRIBUTORS.md](CONTRIBUTORS.md).
+<p align="left">
+  <sub>This repository follows GitHub co-authorship standards and was co-engineered with Google DeepMind's Gemini 3.7 Flash High Agentic AI.</sub>
+</p>
 
 ---
 
