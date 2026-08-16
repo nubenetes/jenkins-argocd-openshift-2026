@@ -1,11 +1,31 @@
 # Enterprise Immutable CI/CD & Multi-Cluster GitOps Framework on Red Hat OpenShift 4.20+
 
-[![OpenShift](https://img.shields.io/badge/Red%20Hat%20OpenShift-4.20+-EE0000.svg?logo=redhatopenshift&logoColor=white)](https://www.redhat.com/en/technologies/cloud-computing/openshift)
-[![Jenkins](https://img.shields.io/badge/Jenkins-JCasC%20%2B%20Job%20DSL-D24939.svg?logo=jenkins&logoColor=white)](https://www.jenkins.io/)
-[![ArgoCD](https://img.shields.io/badge/ArgoCD-Hub--Spoke%20GitOps-EF7B4D.svg?logo=argo&logoColor=white)](https://argoproj.github.io/cd/)
-[![Buildah](https://img.shields.io/badge/Buildah-v1.35.0%20(Rootless)-892CA0.svg)](https://buildah.io/)
-[![Skopeo](https://img.shields.io/badge/Skopeo-v1.14.0%20(API%20Copy)-892CA0.svg)](https://github.com/containers/skopeo)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+<!-- Core Platform & Orchestration -->
+[![OpenShift](https://img.shields.io/badge/Red%20Hat%20OpenShift-4.20+-EE0000.svg?style=flat&logo=redhatopenshift&logoColor=white)](https://www.redhat.com/en/technologies/cloud-computing/openshift)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-v1.31+-326CE5.svg?style=flat&logo=kubernetes&logoColor=white)](https://kubernetes.io/)
+[![ArgoCD](https://img.shields.io/badge/ArgoCD-Hub--Spoke%20GitOps-EF7B4D.svg?style=flat&logo=argo&logoColor=white)](https://argoproj.github.io/cd/)
+[![Helm](https://img.shields.io/badge/Helm-v3.12+-0F1689.svg?style=flat&logo=helm&logoColor=white)](https://helm.sh/)
+
+<!-- Automation & Pipelines -->
+[![Jenkins](https://img.shields.io/badge/Jenkins-2.440.3%20LTS-D24939.svg?style=flat&logo=jenkins&logoColor=white)](https://www.jenkins.io/)
+[![JCasC](https://img.shields.io/badge/Jenkins-JCasC%20(Config%20as%20Code)-333333.svg?style=flat&logo=jenkins&logoColor=white)](https://plugins.jenkins.io/configuration-as-code/)
+[![Job DSL](https://img.shields.io/badge/Job%20DSL-Seed%20Jobs-blue.svg?style=flat&logo=jenkins&logoColor=white)](https://plugins.jenkins.io/job-dsl/)
+[![Shared Library](https://img.shields.io/badge/Jenkins-Shared%20Library-4A154B.svg?style=flat&logo=groovy&logoColor=white)](shared-library/)
+
+<!-- Security & Container Tools -->
+[![Buildah](https://img.shields.io/badge/Buildah-v1.35.0%20(Rootless)-892CA0.svg?style=flat&logo=redhat&logoColor=white)](https://buildah.io/)
+[![Skopeo](https://img.shields.io/badge/Skopeo-v1.14.0%20(API%20Copy)-892CA0.svg?style=flat&logo=redhat&logoColor=white)](https://github.com/containers/skopeo)
+[![Quay](https://img.shields.io/badge/Registry-Red%20Hat%20Quay-4B5563.svg?style=flat&logo=redhat&logoColor=white)](https://www.redhat.com/en/technologies/cloud-computing/quay)
+[![SCC restricted-v2](https://img.shields.io/badge/Security-SCC%20restricted--v2%20(UID%2010001)-10B981.svg?style=flat&logo=openshift&logoColor=white)](#41-openshift-420-restricted-v2-scc-compliance)
+[![Daemonless](https://img.shields.io/badge/Containers-Daemonless%20(No%20Docker%20Daemon)-0284C7.svg?style=flat&logo=linux&logoColor=white)](#42-daemonless-ephemeral-agents)
+
+<!-- Architecture & Governance -->
+[![Architecture](https://img.shields.io/badge/Pattern-Build%20Once%2C%20Promote%20Anywhere-F59E0B.svg?style=flat)](#1-executive-summary--design-philosophy)
+[![GitOps](https://img.shields.io/badge/GitOps-Declarative%20Immutability-9333EA.svg?style=flat&logo=git&logoColor=white)](#13-why-openshift-buildconfig-and-imagestream-resources-are-completely-omitted)
+[![SemVer](https://img.shields.io/badge/SemVer-2.0.0%20(Tag%20Filtering)-38BDF8.svg?style=flat&logo=semver&logoColor=white)](https://semver.org/)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=flat&logo=apache&logoColor=white)](LICENSE)
+[![AI Architecture](https://img.shields.io/badge/Generated%20By-Antigravity%20(Gemini%203.7%20Flash%20High)-7C3AED.svg?style=flat&logo=google&logoColor=white)](#-ai-generation-disclaimer--experimental-status)
+[![Maintained by Nubenetes](https://img.shields.io/badge/Maintained%20by-Nubenetes%20Platform%20Team-059669.svg?style=flat&logo=github&logoColor=white)](https://github.com/nubenetes)
 
 > [!CAUTION]
 > **AI GENERATION DISCLAIMER & EXPERIMENTAL STATUS**
