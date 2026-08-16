@@ -61,6 +61,36 @@ While OpenShift native `BuildConfig` (Source-to-Image / Docker builds) served le
 
 ---
 
+### 1.4 Architectural Decision: Modular Shared Library Steps vs. Encapsulated Monolithic Pipeline
+
+A frequent architectural debate in Enterprise Platform Engineering is whether to **encapsulate the entire Declarative Pipeline inside the Shared Library** (e.g., `vars/immutablePipeline.groovy`, reducing the application `Jenkinsfile` to a 2-line wrapper) versus **retaining a Declarative `Jenkinsfile` in the application repo that consumes modular Shared Library steps** (`vars/buildAndPushDev.groovy`, `vars/promoteImageSkopeo.groovy`, `vars/updateGitOpsManifest.groovy`).
+
+This repository deliberately adopts the **Modular Shared Library Architecture**. Below is the exhaustive technical justification, trade-off matrix, and impact analysis.
+
+#### Comparative Trade-Offs Matrix
+
+| Evaluation Dimension | Modular Approach (`Jenkinsfile` + Step Library) [ADOPTED] | Monolithic Encapsulation (`immutablePipeline.groovy`) |
+| :--- | :--- | :--- |
+| **Jenkins "Replay" Capability** | 🟢 **Full Agility:** Developers can edit stages, conditions, and shell scripts on-the-fly during a Replay to rapidly test hotfixes. | 🔴 **Severely Impaired:** The Replay view only exposes the top-level parameter map (`appName: 'foo'`). Editing internal stages requires navigating nested library scripts, frequently triggering runtime AST/CPS parser errors. |
+| **Developer Visibility & Ownership** | 🟢 **Transparent & Auditable:** The `Jenkinsfile` serves as living documentation in the repo. Developers understand exactly what executes in their CI/CD cycle. | 🔴 **"Black Box" Cognitive Friction:** Developers cannot see pipeline logic in their repository. CI/CD failures lead to friction between app teams and platform engineering. |
+| **Blast Radius & Organizational Risk** | 🟢 **Isolated:** Changes or custom adjustments in a project's `Jenkinsfile` affect only that specific microservice. | 🔴 **High Blast Radius:** A syntax error or breaking change in `immutablePipeline.groovy` can simultaneously halt builds across 100+ repositories organization-wide. |
+| **Flexibility & Customization** | 🟢 **High:** Applications can insert project-specific stages (e.g., specialized integration tests, performance gates) without modifying global platform code. | 🔴 **Monolithic Bloat:** Supporting diverse requirements forces the Shared Library into an unmaintainable `if/else` monolith (`if (isMaven) ... else if (isGradle)`). |
+| **Parameter & Trigger Registration** | 🟢 **Immediate:** Jenkins parses declarative parameters (`RELEASE_TAG`, `TARGET_ENV`) and SCM triggers on the very first repository scan. | ⚠️ **1-Build Delay:** Nested declarative blocks within library calls often require two full execution runs before the Jenkins controller detects parameter definitions. |
+| **Security & Hardening Governance** | 🟢 **Robust via Centralized Steps:** Critical operations (rootless Buildah, Skopeo API copy, restricted-v2 SCC, GitOps manifest patching) remain strictly standardized in the Shared Library. | 🟢 **Total (Strict Governance):** Developers have zero ability to alter pipeline stages or skip compliance quality gates. |
+
+#### Why the Modular Approach is Superior for Enterprise OpenShift GitOps
+
+1. **Preserving the Jenkins "Replay" Workflow:**  
+   The Jenkins Replay feature is an essential debugging tool for DevOps and developer teams. With the modular pattern, developers can modify any stage or shell command in real time to diagnose transient issues without polluting the Git commit history. When the entire `pipeline { ... }` block is concealed inside a shared library variable, Replay cannot modify individual stages directly.
+2. **Preventing the "Black Box" Antipattern:**  
+   When developers treat CI/CD as an opaque black box, platform teams become an operational bottleneck for every minor build troubleshooting request. A transparent, declarative `Jenkinsfile` promotes developer self-service while enforcing platform standards through shared steps.
+3. **Achieving the Optimal "Golden Path":**  
+   The modular approach establishes a clean separation of concerns:
+   - **Application `Jenkinsfile`:** Declares the workflow orchestrator, stages, and conditional business rules (`when { env.TARGET_ENV == 'dev' }`).
+   - **Shared Library (`shared-library/vars/`):** Encapsulates security, compliance, and platform mechanics (daemonless container builds, pure REST API artifact promotion, non-root OpenShift SCC enforcement).
+
+---
+
 ## 2. System Architecture & Mermaid Diagrams
 
 ### 2.1 Multi-Cluster Hub-Spoke Topology
