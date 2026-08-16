@@ -57,8 +57,7 @@
   - [5.3 Manual Step-by-Step Deployment (For Auditing & Customization)](#53-manual-step-by-step-deployment-for-auditing--customization)
 - [6. Decommissioning & Cleanup Guide](#6-decommissioning--cleanup-guide)
 - [7. Compliance, Governance & Audit Trails](#7-compliance-governance--audit-trails)
-- [8. Authors & Contributors](#8-authors--contributors)
-- [9. License](#9-license)
+- [8. License](#8-license)
 
 ---
 
@@ -569,20 +568,7 @@ oc delete project jenkins-infra nubenetes-dev nubenetes-staging nubenetes-produc
 
 ---
 
-## 8. Authors & Contributors
-
-| Contributor | Role | Profile / Identity |
-| :--- | :--- | :--- |
-| **Inaki** | Architecture Design & Platform Engineering | [@inafev](https://github.com/inafev) |
-| **Gemini 3.7 Flash High** | Agentic AI Coding & Manifest Generation | [Google DeepMind / Antigravity](https://deepmind.google/technologies/gemini/) |
-
-<p align="left">
-  <sub>This repository follows GitHub co-authorship standards and was co-engineered with Google DeepMind's Gemini 3.7 Flash High Agentic AI.</sub>
-</p>
-
----
-
-## 9. License
+## 8. License
 
 Licensed under the [Apache License, Version 2.0](LICENSE).  
 Maintained by the **Nubenetes Platform Engineering Team**.
