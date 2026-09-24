@@ -619,6 +619,8 @@ Below are the direct links and full descriptions, organized by original audio la
 | 3 | [How Buildah and Skopeo Secure Containers](https://www.youtube.com/shorts/dQuY8ugZ3bU) | Daemonless Containers | `1:13` | [▶️ Watch](https://www.youtube.com/shorts/dQuY8ugZ3bU) |
 | 4 | [How the Unified Jenkinsfile Works](https://www.youtube.com/shorts/kc74CtfG2xg) | Unified Pipeline Logic | `1:15` | [▶️ Watch](https://www.youtube.com/shorts/kc74CtfG2xg) |
 | 5 | [How Jenkins Git Parameters Protect Production](https://www.youtube.com/shorts/0Zd7zNSae48) | Immutable Promotion | `1:13` | [▶️ Watch](https://www.youtube.com/shorts/0Zd7zNSae48) |
+| 6 | [How Pure GitOps Reverses Deployments](https://www.youtube.com/shorts/0-NIxNk7cuM) | Pull Model vs Push Scripts | `1:12` | [▶️ Watch](https://www.youtube.com/shorts/0-NIxNk7cuM) |
+| 7 | [The Shift to Pure GitOps Deployments](https://www.youtube.com/shorts/iKTgIsbQCcQ) | Eliminating UI Deploy Buttons | `1:23` | [▶️ Watch](https://www.youtube.com/shorts/iKTgIsbQCcQ) |
 
 <br/>
 
@@ -651,6 +653,18 @@ Below are the direct links and full descriptions, organized by original audio la
 - ⏱️ **Duration**: 1:13
 - 📝 **Full Description**:
 > 🚀 How the Jenkins Git Parameter plugin and immutable promotion guarantee that what you test in development is bit-for-bit identical to what runs in production.
+
+##### 6. How Pure GitOps Reverses Deployments
+- 🔗 **Link**: [https://www.youtube.com/shorts/0-NIxNk7cuM](https://www.youtube.com/shorts/0-NIxNk7cuM)
+- ⏱️ **Duration**: 1:12
+- 📝 **Full Description**:
+> 🚀 How GitOps completely inverts traditional deployment architecture: replacing fragile external push scripts with an internal ArgoCD controller pulling state from Git without exposing cluster credentials.
+
+##### 7. The Shift to Pure GitOps Deployments
+- 🔗 **Link**: [https://www.youtube.com/shorts/iKTgIsbQCcQ](https://www.youtube.com/shorts/iKTgIsbQCcQ)
+- ⏱️ **Duration**: 1:23
+- 📝 **Full Description**:
+> 🚀 Why leading platform engineering teams eliminate manual UI deploy buttons, moving from fragile multi-repo parameter dropdowns to webhook-triggered CI and pull-based ArgoCD synchronization.
 
 </details>
 
