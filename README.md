@@ -57,7 +57,8 @@
   - [5.3 Manual Step-by-Step Deployment (For Auditing & Customization)](#53-manual-step-by-step-deployment-for-auditing--customization)
 - [6. Decommissioning & Cleanup Guide](#6-decommissioning--cleanup-guide)
 - [7. Compliance, Governance & Audit Trails](#7-compliance-governance--audit-trails)
-- [8. License](#8-license)
+- [8. Video Walkthroughs, Technical Podcasts & Shorts (YouTube)](#8-video-walkthroughs-technical-podcasts--shorts-youtube)
+- [9. License](#9-license)
 
 ---
 
@@ -568,7 +569,94 @@ oc delete project jenkins-infra nubenetes-dev nubenetes-staging nubenetes-produc
 
 ---
 
-## 8. License
+## 8. Video Walkthroughs, Technical Podcasts & Shorts (YouTube)
+
+Architectural deep dives, video walkthroughs, and technical shorts for `jenkins-argocd-openshift-2026` are hosted on the **[Nubenetes YouTube Channel (@nubenetes)](https://www.youtube.com/@nubenetes)**.
+
+Below are the direct links and full descriptions, organized by original audio language and format.
+
+### 🇪🇸 Vídeos en Español (Audio Original)
+
+<details open>
+<summary>📂 <strong>Recorridos Técnicos y Análisis en Español</strong></summary>
+
+<br/>
+
+##### 1. CI/CD Inmutable y GitOps en Red Hat OpenShift 4.20 con Jenkins y ArgoCD
+- 🔗 **Enlace**: [https://www.youtube.com/watch?v=b2FyV4t19-g](https://www.youtube.com/watch?v=b2FyV4t19-g)
+- ⏱️ **Duración**: 7:16
+- 🏷️ **Dominio**: OpenShift 4.20, CI/CD Inmutable & GitOps
+- 📝 **Descripción completa**:
+> 🚀 Análisis técnico detallado sobre cómo diseñar e implementar una estrategia de automatización GitOps empresarial sobre Red Hat OpenShift 4.20+.
+>
+> 📌 Puntos clave analizados:
+> • El principio de inmutabilidad estricta: Construir el contenedor una única vez en desarrollo y promover el mismo hash SHA256 criptográfico a staging y producción sin recompilar.
+> • Compilaciones sin demonio (Daemonless): Adiós al socket de Docker y a los privilegios de root en OCP 4.20. Construcción segura en pods no privilegiados con Buildah.
+> • Promoción ultra-rápida entre registros con Skopeo: Transferencia directa API-to-API entre registros dev y prod sin descargas ni recompilaciones intermedias.
+> • Automatización como código: Jenkins JCasC (Configuration as Code) y seed jobs con Job DSL para desacoplar la generación de pipelines de su ejecución.
+> • Despliegue declarativo con ArgoCD: Ruptura de la conexión directa entre el servidor de CI y producción; ArgoCD sincroniza el estado deseado desde el clúster (pull-based).
+>
+> 🔗 Repositorio oficial: https://github.com/nubenetes/jenkins-argocd-openshift-2026
+> 🔗 Siguiente evolución (Pure GitOps): https://github.com/nubenetes/jenkins-without-git-parameter
+>
+> #OpenShift #GitOps #ArgoCD #Jenkins #DevSecOps #Kubernetes #Buildah #Skopeo #CloudNative
+
+</details>
+
+### 🇬🇧 Videos in English (Original Audio)
+
+<details open>
+<summary>📂 <strong>Architecture Video Shorts (5 Shorts)</strong></summary>
+
+<br/>
+
+### 📑 Quick Index Matrix
+
+| # | Short Title | Domain / Pillar | Duration | Direct Link |
+|---|---|---|---|---|
+| 1 | [How Multi Cluster GitOps Works](https://www.youtube.com/shorts/idLvUjllX04) | Multi-Cluster Hub-Spoke | `1:07` | [▶️ Watch](https://www.youtube.com/shorts/idLvUjllX04) |
+| 2 | [How GitOps Secures Deployments](https://www.youtube.com/shorts/LcHLwrJ2950) | Pull vs Push Security | `1:06` | [▶️ Watch](https://www.youtube.com/shorts/LcHLwrJ2950) |
+| 3 | [How Buildah and Skopeo Secure Containers](https://www.youtube.com/shorts/dQuY8ugZ3bU) | Daemonless Containers | `1:13` | [▶️ Watch](https://www.youtube.com/shorts/dQuY8ugZ3bU) |
+| 4 | [How the Unified Jenkinsfile Works](https://www.youtube.com/shorts/kc74CtfG2xg) | Unified Pipeline Logic | `1:15` | [▶️ Watch](https://www.youtube.com/shorts/kc74CtfG2xg) |
+| 5 | [How Jenkins Git Parameters Protect Production](https://www.youtube.com/shorts/0Zd7zNSae48) | Immutable Promotion | `1:13` | [▶️ Watch](https://www.youtube.com/shorts/0Zd7zNSae48) |
+
+<br/>
+
+##### 1. How Multi Cluster GitOps Works
+- 🔗 **Link**: [https://www.youtube.com/shorts/idLvUjllX04](https://www.youtube.com/shorts/idLvUjllX04)
+- ⏱️ **Duration**: 1:07
+- 📝 **Full Description**:
+> 🚀 How does the GitOps hub-and-spoke model safely update highly restricted multi-cluster networks without sharing admin keys? The CI server updates Git manifests, while internal ArgoCD controllers pull and apply changes safely from the inside out.
+
+##### 2. How GitOps Secures Deployments
+- 🔗 **Link**: [https://www.youtube.com/shorts/LcHLwrJ2950](https://www.youtube.com/shorts/LcHLwrJ2950)
+- ⏱️ **Duration**: 1:06
+- 📝 **Full Description**:
+> 🚀 Why giving your CI build server keys to your production Kubernetes cluster is a massive security risk—and how GitOps completely severs the direct connection.
+
+##### 3. How Buildah and Skopeo Secure Containers
+- 🔗 **Link**: [https://www.youtube.com/shorts/dQuY8ugZ3bU](https://www.youtube.com/shorts/dQuY8ugZ3bU)
+- ⏱️ **Duration**: 1:13
+- 📝 **Full Description**:
+> 🚀 How to build and promote containers in locked-down enterprise OpenShift without a Docker daemon or root access using Buildah and Skopeo.
+
+##### 4. How the Unified Jenkinsfile Works
+- 🔗 **Link**: [https://www.youtube.com/shorts/kc74CtfG2xg](https://www.youtube.com/shorts/kc74CtfG2xg)
+- ⏱️ **Duration**: 1:15
+- 📝 **Full Description**:
+> 🚀 How a single unified Jenkinsfile tracks application updates across dev and prod, preventing configuration drift and enforcing container promotion without rebuilds.
+
+##### 5. How Jenkins Git Parameters Protect Production
+- 🔗 **Link**: [https://www.youtube.com/shorts/0Zd7zNSae48](https://www.youtube.com/shorts/0Zd7zNSae48)
+- ⏱️ **Duration**: 1:13
+- 📝 **Full Description**:
+> 🚀 How the Jenkins Git Parameter plugin and immutable promotion guarantee that what you test in development is bit-for-bit identical to what runs in production.
+
+</details>
+
+---
+
+## 9. License
 
 Licensed under the [Apache License, Version 2.0](LICENSE).  
 Maintained by the **Nubenetes Platform Engineering Team**.
